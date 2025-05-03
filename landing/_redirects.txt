@@ -1,0 +1,4 @@
+/legal/privacy    /privacy.html     200
+/legal/tos        /tos.html         200
+/success-page     /success.html     200
+/legal/refund     /refund.html      200
