@@ -140,6 +140,6 @@ dist
 
 # Supabase
 .supabase/temp
-.supabase/data
-.supabase/*.csv
-.supabase/data_dump.sql
+supabase/data/
+supabase/data_dump.sql
+supabase/*.csv
