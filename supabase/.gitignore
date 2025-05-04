@@ -1,6 +1,10 @@
 # Supabase
 .branches
 .temp
+./data/
+/data_dump.sql
+/*.csv
+
 
 # dotenvx
 .env.keys
