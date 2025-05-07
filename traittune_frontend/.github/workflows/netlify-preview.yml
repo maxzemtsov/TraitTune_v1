@@ -1,0 +1,61 @@
+name: Netlify Preview Deployment (pilot)
+
+on:
+  pull_request:
+    branches:
+      - pilot # Or your main development/staging branch if different
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    name: Build and Deploy Preview
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Specify your Node.js version
+          cache: 'npm' # or 'yarn'
+
+      - name: Install dependencies
+        run: npm ci # or yarn install --frozen-lockfile
+
+      # Optional: Add linting step
+      # - name: Lint code
+      #   run: npm run lint # or yarn lint
+
+      - name: Run tests
+        run: npm test # or yarn test (ensure your test scripts are configured)
+
+      - name: Build project
+        run: npm run build # or yarn build
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy Preview to Netlify
+        id: deploy_preview
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          netlify deploy \
+            --dir=.next \
+            --alias="deploy-preview-${{ github.event.pull_request.number }}" \
+            --message="PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}" \
+            --json > netlify_preview_deploy.json
+          echo "NETLIFY_PREVIEW_URL=$(jq -r .deploy_url netlify_preview_deploy.json)" >> $GITHUB_ENV
+
+      - name: Post Preview URL to PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: success() && env.NETLIFY_PREVIEW_URL
+        with:
+          header: netlify-preview-deployment
+          message: |
+            🚀 **Netlify Preview Deployment Successful!**
+
+            Preview URL: ${{ env.NETLIFY_PREVIEW_URL }}
+            Commit: `${{ github.event.pull_request.head.sha }}`
+
