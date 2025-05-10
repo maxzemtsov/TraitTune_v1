@@ -1,0 +1,43 @@
+/* src/components/OliviaSphere.css */
+.olivia-sphere {
+  width: 100px;
+  height: 100px;
+  background-color: hsl(var(--primary-blue-hsl)); /* Blue from design system */
+  border-radius: 50%; /* Initial shape: circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: olivia-thinking 4s infinite ease-in-out;
+  transition: background-color 0.5s ease, border-radius 0.5s ease; /* Smooth transitions for properties not in keyframes */
+}
+
+.olivia-sphere.speaking {
+  /* Example: slightly different animation or visual cue when speaking */
+  /* For now, let's keep the thinking animation but maybe a subtle border or glow */
+  /* box-shadow: 0 0 15px 5px hsla(var(--accent-teal-hsl), 0.7); */
+}
+
+@keyframes olivia-thinking {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    border-radius: 50%; /* Circle */
+    background-color: hsl(var(--primary-blue-hsl)); /* Blue */
+  }
+  25% {
+    transform: scale(1.1) rotate(45deg);
+    border-radius: 15%; /* Diamond-like shape */
+    background-color: hsl(var(--secondary-purple-hsl)); /* Purple */
+  }
+  50% {
+    transform: scale(1) rotate(90deg);
+    border-radius: 50%; /* Circle */
+    background-color: hsl(var(--accent-teal-hsl)); /* Teal */
+  }
+  75% {
+    transform: scale(1.1) rotate(135deg);
+    border-radius: 15%; /* Diamond-like shape */
+    background-color: hsl(var(--secondary-violet-hsl)); /* Violet */
+  }
+}
+

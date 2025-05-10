@@ -143,3 +143,30 @@ dist
 supabase/data/
 supabase/data_dump.sql
 supabase/*.csv
+
+# landing
+landing/.env
+landing/.env.local
+landing/.env.development
+landing/.env.production
+landing/.env.test
+landing/.next 
+landing/node_modules
+
+# Backend
+backend/.env
+backend/.env.local
+backend/.env.development
+backend/.env.production
+backend/.env.test
+backend/.next
+backend/node_modules
+
+# platform
+platform/.env
+platform/.env.local
+platform/.env.development
+platform/.env.production
+platform/.env.test
+platform/.next
+platform/node_modules

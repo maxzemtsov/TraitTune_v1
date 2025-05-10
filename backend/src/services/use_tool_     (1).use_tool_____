@@ -1,0 +1,152 @@
+## TraitTune Project: Integration and Update Guide
+
+**Version:** May 10, 2025
+
+**1. Introduction**
+
+This guide provides instructions for integrating the latest updates into your TraitTune project codebase. The key improvements in this update cycle focus on enhancing the backend's Computerized Adaptive Testing (CAT) and Item Response Theory (IRT) logic, refining LLM integration for open-ended questions, addressing previously identified integration test failures, and ensuring a more robust end-to-end data flow. The goal is to move towards a system that relies on real database interactions and validated psychometric principles.
+
+**2. Prerequisites**
+
+Before you begin, please ensure you have the following:
+
+*   Access to your existing TraitTune project codebase (both `backend` and `platform` directories).
+*   Node.js (version 20.x or as specified in `backend/package.json`) and npm installed.
+*   Access to your Supabase project dashboard and API keys (for database checks and backend configuration).
+*   A code editor (e.g., VS Code).
+*   A terminal or command-line interface.
+
+**3. Overview of Updated Components**
+
+This update primarily targets the backend services and their integration. Key modified files and directories include:
+
+*   **Backend (`/home/ubuntu/traittune/backend/`)**:
+    *   `src/routes/assessmentRoutes.js`: Updated for better state management, test isolation, and CAT/IRT completion logic.
+    *   `src/services/assessmentDataService.js`: Ensured it correctly uses the `segments` table from your database and caches data effectively.
+    *   `src/services/assessmentLogicService.js`: Refactored to better align with 2PL IRT principles for theta estimation and confidence scoring (though full EAP/MLE is a future enhancement).
+    *   `src/services/llm_service/llm_service.js`: Reviewed and refined for prompt structure and handling of LLM responses.
+    *   `src/services/engine_service/engine_service.js`: Reviewed for session management, question flow, and response persistence logic.
+    *   Other services in `src/services/` (e.g., `scoring_service`, `confidence_service`, `user_service`) were audited for integration.
+*   **Backend Tests (`/home/ubuntu/traittune/backend/tests/`)**:
+    *   `integration/assessment.integration.test.js`: Revised to reflect changes in the adaptive logic and error handling.
+
+No significant changes were made to the `platform` (frontend) codebase in this specific update cycle, as the primary focus was on backend integration and stability.
+
+**4. Pre-Update Steps: Backup Your Project**
+
+**CRITICAL:** Before applying any changes, it is strongly recommended to create a complete backup of your existing TraitTune project directory.
+
+```bash
+# Example: Navigate to the parent directory of your TraitTune project
+# cd /path/to/parent_directory/
+# cp -R traittune traittune_backup_20250510
+```
+Replace `/path/to/parent_directory/` and `traittune_backup_20250510` with your actual paths and desired backup name.
+
+**5. Unpacking the Updated Codebase**
+
+You will receive an archive file containing the updated codebase (e.g., `traittune_updated_codebase_YYYYMMDD.tar.gz`).
+
+1.  Move the archive to a temporary location or directly to where you want to unpack it.
+2.  Open your terminal and navigate to the directory where you placed the archive.
+3.  Unpack the archive using the following command:
+
+    ```bash
+    tar -xzvf traittune_updated_codebase_YYYYMMDD.tar.gz
+    ```
+    This will typically create a directory structure like `traittune/backend/...` and potentially `traittune/platform/...` if frontend files were included.
+
+**6. Integration Steps**
+
+**6.1. Backend Integration**
+
+1.  Navigate to your existing TraitTune backend project directory:
+    ```bash
+    cd /path/to/your/existing/traittune/backend
+    ```
+2.  Carefully replace the updated files and directories from the unpacked archive into your existing backend project. It's generally safer to replace specific updated files/directories rather than overwriting the entire `src` or `tests` directory if you have local uncommitted changes you wish to preserve. Otherwise, you can replace the relevant directories.
+    *   For example, if the unpacked archive has a `backend/src` directory:
+        ```bash
+        # Ensure you are in your existing /path/to/your/existing/traittune/backend directory
+        # Remove old directories/files if you are doing a full replacement of a sub-directory
+        # rm -rf ./src 
+        # cp -R /path/to/unpacked_archive/traittune/backend/src ./src
+        # cp -R /path/to/unpacked_archive/traittune/backend/tests ./tests
+        # cp /path/to/unpacked_archive/traittune/backend/package.json ./package.json
+        # cp /path/to/unpacked_archive/traittune/backend/package-lock.json ./package-lock.json 
+        ```
+        Adapt these commands based on the structure of the provided archive and your preference for merging.
+
+3.  **Environment Variables (`.env` file)**:
+    Ensure your `.env` file located in the root of the `/path/to/your/existing/traittune/backend` directory is correctly configured. It should contain:
+    ```env
+    SUPABASE_URL=your_supabase_url
+    SUPABASE_KEY=your_supabase_anon_key
+    OPENAI_API_KEY=your_openai_api_key
+    # PORT=3001 (Optional, defaults to 3001 if not set)
+    # JWT_SECRET=your_jwt_secret_key (Ensure this is set for authentication)
+    ```
+    No new environment variables are mandated by this specific update unless explicitly noted in accompanying release notes.
+
+4.  **Install/Update Dependencies**:
+    After updating the files (especially `package.json` and `package-lock.json`), reinstall dependencies:
+    ```bash
+    # Ensure you are in /path/to/your/existing/traittune/backend
+    npm install
+    ```
+
+5.  **Restart Backend Server**:
+    ```bash
+    npm run dev
+    ```
+    The backend server should start, typically on `http://localhost:3001`. Monitor the console output for any errors, successful connection to Supabase, and messages about data caching.
+
+**6.2. Platform (Frontend) Integration**
+
+As mentioned, this update cycle focused on the backend. No specific file changes are anticipated for the platform (frontend).
+
+*   Ensure your platform application is configured to make API calls to the backend at its correct address (e.g., `http://localhost:3001/api/v1/...`).
+*   If your platform was previously using mock data, ensure it's now pointing to the live backend API endpoints for assessment data and user interactions.
+
+**6.3. Database (Supabase)**
+
+*   **Schema**: No new database schema changes (e.g., new tables, columns) are mandated by this update beyond what has been previously communicated and implemented (e.g., the use of the `segments` table).
+*   **Data**: The backend logic now heavily relies on actual data being present in your Supabase tables (`dimensions`, `questions`, `answer_options`, `segments`, `user_sessions`, `user_results`, `open_responses`). Ensure these tables are appropriately populated for the CAT/IRT and adaptive logic to function as intended. The system has been refactored to minimize reliance on mock data.
+
+**7. Verification Steps**
+
+1.  **Backend Automated Tests**:
+    *   Navigate to your backend project directory: `cd /path/to/your/existing/traittune/backend`
+    *   Run the integration tests:
+        ```bash
+        npm test
+        ```
+    *   Review the test output. While the aim is for all tests to pass, consult the `test_failures_and_fixes.md` document (if provided with the update or from previous discussions) for any known issues or specific test scenarios that might still be under refinement. The primary focus of this update was to improve the core logic; some edge-case tests might still highlight areas for further work.
+
+2.  **Manual End-to-End Testing**:
+    *   Ensure both your backend server (port 3001) and platform application (typically port 3000) are running.
+    *   Access the platform application through your browser.
+    *   Attempt a full assessment flow: start an assessment, answer various questions (triggering adaptive logic), and if possible, complete a dimension or the full assessment.
+    *   Monitor the backend server's console logs for any errors or unexpected behavior. Check for successful API calls and data processing messages.
+    *   Verify if the platform UI correctly reflects the data and state changes driven by the backend.
+
+3.  **API Endpoint Checks (Optional, using Postman or cURL)**:
+    *   Test key backend API endpoints directly:
+        *   `GET /api/v1/assessment/start/:dimensionId` (requires JWT token for authenticated user)
+        *   `POST /api/v1/assessment/response` (requires JWT token and appropriate payload)
+    *   Check for expected status codes and response structures.
+
+**8. Troubleshooting Common Issues**
+
+*   **Backend Server Fails to Start**: 
+    *   Double-check your `.env` file for correct Supabase/OpenAI keys and formatting.
+    *   Ensure `npm install` completed without errors.
+    *   Review the console output for specific error messages (e.g., port conflicts, module not found).
+*   **Database Connection Errors**: 
+    *   Verify `SUPABASE_URL` and `SUPABASE_KEY` in the `.env` file.
+    *   Check your internet connection and Supabase project status.
+*   **Integration Test Failures**: 
+    *   Consult `test_failures_and_fixes.md`.
+    *   Ensure the backend server is not already running on the same port if tests try to start their own instance.
+    *   Verify that your database contains the necessary seed/test data expected by the tests (especially for `questions` and `segments` related to dimension 1, which is often used in tests).
+*   **
