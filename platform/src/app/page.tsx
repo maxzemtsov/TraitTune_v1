@@ -127,7 +127,7 @@ const AssessmentPage = () => {
       }
     }
     setIsLoading(false);
-  }, [userId, currentSessionId, locale, addMessage, t]);
+  }, [userId, currentSessionId, locale, addMessage, t, router]); // Added router to dependency array
 
   // Auth State Change Listener & Initial Anonymous Sign-in
   useEffect(() => {
@@ -188,7 +188,7 @@ const AssessmentPage = () => {
         addMessage({ text: t("assessment.starting"), sender: "system", requiresInput: false });
         setAssessmentPhase("assessment_questions");
         // TODO: Start a new session if applicable, then fetch first question
-        // setCurrentSessionId(newSessionId);
+        // setCurrentSessionId(newSessionId); // Example: You'll need to generate/fetch a real session ID
         fetchAndDisplayNextQuestion(); 
     }
   }, [assessmentPhase, isAuthenticated, userId, addMessage, t, messages, fetchAndDisplayNextQuestion]);
@@ -211,18 +211,35 @@ const AssessmentPage = () => {
     if (assessmentPhase === "name_prompt") {
       setUserName(inputText);
       addMessage({ text: t("onboarding.olivia_goal_prompt", { name: inputText }), sender: "bot", questionType: "single-choice",
-        options: [ /* ... onboarding options ... */ ], requiresInput: false });
+        options: [
+            { value: "purpose", label: t("onboarding.goal_options.purpose") },
+            { value: "career_path", label: t("onboarding.goal_options.career_path") },
+            { value: "strengths_growth", label: t("onboarding.goal_options.strengths_growth") },
+            { value: "hidden_potential", label: t("onboarding.goal_options.hidden_potential") },
+            { value: "match_others", label: t("onboarding.goal_options.match_others") },
+        ], requiresInput: true });
       setAssessmentPhase("goal_prompt");
     } else if (assessmentPhase === "goal_prompt") {
-      // ... other onboarding phases ...
-      // For now, let's assume onboarding leads to consent_prompt
+      // TODO: Handle goal selection, then move to ice_breaker_prompt or metadata_prompt
+      addMessage({ text: t("onboarding.ice_breaker_prompt_text"), sender: "bot", questionType: "text", requiresInput: true });
+      setAssessmentPhase("ice_breaker_prompt");
+    } else if (assessmentPhase === "ice_breaker_prompt") {
+      // TODO: Handle ice breaker, then move to metadata_prompt
+      addMessage({ text: t("onboarding.metadata_prompt_text"), sender: "bot", questionType: "text", requiresInput: true }); // This is a placeholder, a form or LinkedIn option should be here
+      setAssessmentPhase("metadata_prompt");
+    } else if (assessmentPhase === "metadata_prompt") {
+      // TODO: Handle metadata, then move to consent_prompt
       addMessage({ text: t("onboarding.consent_dialogue_text"), sender: "bot", questionType: "single-choice", 
         options: [{value: "agree", label: t("common.agree")}, {value: "disagree", label: t("common.disagree")} ],
-        requiresInput: false });
+        requiresInput: true });
       setAssessmentPhase("consent_prompt");
     } else if (assessmentPhase === "consent_prompt") {
         if (optionValue === "agree") {
-            // User agreed, handled by useEffect to fetch first question
+            addMessage({ text: t("assessment.starting"), sender: "system", requiresInput: false });
+            setAssessmentPhase("assessment_questions");
+            // Potentially create a new session ID here if not already done
+            // For example: setCurrentSessionId(uuidv4()); 
+            fetchAndDisplayNextQuestion();
         } else {
             addMessage({ text: t("onboarding.consent_declined"), sender: "system", requiresInput: false });
             // Handle consent declined (e.g., end session or redirect)
@@ -251,7 +268,7 @@ const AssessmentPage = () => {
       }
     }
     setIsLoading(false);
-  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId, locale]); // Added locale to dependency array
+  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId, locale, router]); // Added router to dependency array
 
   const handleOAuthSignIn = async (provider: Provider) => {
     setIsLoading(true);
@@ -298,4 +315,30 @@ const AssessmentPage = () => {
       )}
 
       {/* Registration Modal */}
-      <Dial
+      <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("auth.registration_prompt.title")}</DialogTitle>
+            <DialogDescription>
+              {t("auth.registration_prompt.description")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Button className="w-full" onClick={() => handleOAuthSignIn("google")}> {t("auth.sign_in_with_google")}</Button>
+            <Button className="w-full" onClick={() => handleOAuthSignIn("linkedin")}>{t("auth.sign_in_with_linkedin")}</Button>
+            {/* Add other providers as needed */}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => {
+              setShowRegistrationModal(false);
+              fetchAndDisplayNextQuestion(); // Continue assessment as anonymous if modal is closed
+            }}>{t("auth.continue_as_guest")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AssessmentPage;
+
