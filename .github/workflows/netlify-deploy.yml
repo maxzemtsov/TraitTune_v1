@@ -39,6 +39,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           # Add any other NEXT_PUBLIC_ or build-time environment variables here
 
+      - name: List files in platform directory
+        working-directory: ./platform
+        run: |
+          echo "Listing contents of ./platform:"
+          ls -la
+          echo "Listing contents of ./platform/.next:"
+          ls -la .next
+
       - name: Deploy Platform to Netlify
         uses: nwtgck/actions-netlify@v2.1.0 # Using a specific version of the Netlify deploy action
         with:
@@ -47,7 +55,6 @@ jobs:
           deploy-message: "Deploy Platform to Netlify from commit ${{ github.sha }}"
           enable-pull-request-comment: false # Disable comments on PRs for deploy previews
           enable-commit-comment: true      # Enable comments on commits with deploy status
-          overwrites: true                 # Allow overwriting previous deploys for the same branch
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} # Secret for Netlify authentication
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}       # Secret for Netlify Site ID
