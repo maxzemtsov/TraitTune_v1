@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - pilot
-  workflow_dispatch: # Allows manual triggering from the GitHub UI
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_platform:
     name: Build and Deploy Platform
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./platform
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,46 +20,52 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Using Node.js 18, common for Next.js
+          node-version: '18'
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8 # Using pnpm version 8
+          version: 8
 
       - name: Install Platform dependencies
-        working-directory: ./platform # Specify the working directory for platform-specific commands
         run: pnpm install --no-frozen-lockfile
 
       - name: Build Platform (Next.js application)
-        working-directory: ./platform
         run: pnpm run build
         env:
-          # IMPORTANT: These secrets must be configured in your GitHub repository settings
-          # (Settings > Secrets and variables > Actions > New repository secret)
-          # for the build to succeed if your application requires them at build time.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          # Add any other NEXT_PUBLIC_ or build-time environment variables here
 
-      - name: List files in platform directory
-        working-directory: ./platform
+      - name: List files in platform directory after build (Troubleshooting)
+        run: ls -la
+
+      - name: List files in platform/out directory (Troubleshooting)
         run: |
-          echo "Listing contents of ./platform:"
-          ls -la
-          echo "Listing contents of ./platform/.next:"
-          ls -la .next
+          if [ -d "out" ]; then
+            echo "Contents of ./platform/out:"
+            ls -la out
+          else
+            echo "Directory ./platform/out does not exist"
+          fi
+
+      - name: List files in platform/.next directory (Troubleshooting)
+        run: |
+          if [ -d ".next" ]; then
+            echo "Contents of ./platform/.next:"
+            ls -la .next
+          else
+            echo "Directory ./platform/.next does not exist"
+          fi
 
       - name: Deploy Platform to Netlify
-        uses: nwtgck/actions-netlify@v2.1.0 # Using a specific version of the Netlify deploy action
+        uses: nwtgck/actions-netlify@v2.1.0
         with:
-          publish-dir: './platform/.next' # Directory containing the Next.js build output
-          production-branch: pilot # Specifies the branch this workflow is deploying
+          publish-dir: './platform/out' # Changed to 'out' for static export
+          production-branch: pilot
           deploy-message: "Deploy Platform to Netlify from commit ${{ github.sha }}"
-          enable-pull-request-comment: false # Disable comments on PRs for deploy previews
-          enable-commit-comment: true      # Enable comments on commits with deploy status
+          enable-pull-request-comment: false
+          enable-commit-comment: true
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} # Secret for Netlify authentication
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}       # Secret for Netlify Site ID
-        timeout-minutes: 15 # Set a timeout for the deployment step
-
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5 # Added a timeout for safety, adjust as needed
