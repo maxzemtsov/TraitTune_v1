@@ -1,13 +1,12 @@
-// /home/ubuntu/traittune_frontend/src/components/providers/I18nProvider.tsx
 "use client";
 
-import { I18nextProvider } from "react-i18next";
-import i18n from "../../lib/i18n"; // Adjust path as necessary
+import { I18nextProvider, useTranslation as useReactI18nextTranslation } from "react-i18next";
+import i18n from "../../lib/i18n";
 import { ReactNode, useEffect } from "react";
 
 interface I18nProviderProps {
   children: ReactNode;
-  locale?: string; // Optional: if you want to force a locale from the server
+  locale?: string;
 }
 
 export function I18nProvider({ children, locale }: I18nProviderProps) {
@@ -20,3 +19,11 @@ export function I18nProvider({ children, locale }: I18nProviderProps) {
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 }
 
+export const useI18n = () => {
+  const { t, i18n: i18nInstance } = useReactI18nextTranslation();
+  return {
+    t,
+    locale: i18nInstance.language,
+    setLocale: (lang: string) => i18nInstance.changeLanguage(lang),
+  };
+};
