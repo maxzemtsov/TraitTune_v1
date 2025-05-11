@@ -1,0 +1,28 @@
+version: 1
+applications:
+  - appRoot: platform # Specifies the root of the Next.js app within the monorepo
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            # Assuming pnpm is used for the platform app based on package.json
+            # If npm or yarn, change to: npm ci or yarn install
+            - pnpm install --frozen-lockfile # Use frozen-lockfile for CI
+        build:
+          commands:
+            - pnpm run build
+      artifacts:
+        baseDirectory: .next # Relative to appRoot (platform/.next)
+        files:
+          - "**/*"
+      cache:
+        paths:
+          - node_modules/**/* # Cache general node_modules
+          - .next/cache/**/* # Cache Next.js build cache
+          - "$(pnpm store path)/**/*" # Cache pnpm global store if applicable
+    # It's good practice to specify the Node version for Amplify as well.
+    # This is usually done in the Amplify Console under Build settings -> Build image settings
+    # or by adding a .nvmrc or .node-version file to the appRoot (platform/)
+    # For amplify.yml, explicit Node version setting isn't standard here, but ensure it's set in console.
+    # We aim for Node.js 22 or 20.
+
