@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Platform dependencies
         working-directory: ./platform # Specify the working directory for platform-specific commands
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Platform (Next.js application)
         working-directory: ./platform
