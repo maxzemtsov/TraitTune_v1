@@ -1,0 +1,55 @@
+name: Deploy TraitTune Platform to Netlify
+
+on:
+  push:
+    branches:
+      - pilot
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+jobs:
+  build_and_deploy_platform:
+    name: Build and Deploy Platform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Using Node.js 18, common for Next.js
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8 # Using pnpm version 8
+
+      - name: Install Platform dependencies
+        working-directory: ./platform # Specify the working directory for platform-specific commands
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Platform (Next.js application)
+        working-directory: ./platform
+        run: pnpm run build
+        env:
+          # IMPORTANT: These secrets must be configured in your GitHub repository settings
+          # (Settings > Secrets and variables > Actions > New repository secret)
+          # for the build to succeed if your application requires them at build time.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Add any other NEXT_PUBLIC_ or build-time environment variables here
+
+      - name: Deploy Platform to Netlify
+        uses: nwtgck/actions-netlify@v2.1.0 # Using a specific version of the Netlify deploy action
+        with:
+          publish-dir: './platform/.next' # Directory containing the Next.js build output
+          production-branch: pilot # Specifies the branch this workflow is deploying
+          deploy-message: "Deploy Platform to Netlify from commit ${{ github.sha }}"
+          enable-pull-request-comment: false # Disable comments on PRs for deploy previews
+          enable-commit-comment: true      # Enable comments on commits with deploy status
+          overwrites: true                 # Allow overwriting previous deploys for the same branch
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} # Secret for Netlify authentication
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}       # Secret for Netlify Site ID
+        timeout-minutes: 15 # Set a timeout for the deployment step
+
