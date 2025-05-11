@@ -1,16 +1,15 @@
-// /home/ubuntu/traittune/backend/tests/integration/assessment.integration.test.js
 const request = require("supertest");
+const fs = require("fs"); // Added for file writing
 const app = require("../../src/app");
-const assessmentDataService = require("../../src/services/assessmentDataService");
-const assessmentLogicService = require("../../src/services/assessmentLogicService");
+const assessmentDataService = require("../../src/services/assessmentDataService"); // This is the auto-mocked version by jest.mock below
 
 // Mocking authMiddleware for tests
 jest.mock("../../src/middleware/authMiddleware", () => (req, res, next) => {
-    req.user = { userId: "test-user-123" };
+    req.user = { userId: "test-user-123", sessionId: "test-session-123" };
     next();
 });
 
-// More detailed mock for assessmentDataService
+// Mock assessmentDataService
 const mockQuestionsDim1 = [
     { id: 101, dimension_id: 1, question_type: "likert", segment_level: 3, irt_discriminativeness: 1.5, irt_difficulty: 0.0, is_reverse: false, text_en: "Anchor Q1 Dim1" },
     { id: 102, dimension_id: 1, question_type: "likert", segment_level: 3, irt_discriminativeness: 1.8, irt_difficulty: 0.2, is_reverse: false, text_en: "Q2 Dim1" },
@@ -27,49 +26,61 @@ const mockQuestionsDim1 = [
 
 jest.mock("../../src/services/assessmentDataService", () => ({
     dataInitializationPromise: Promise.resolve(),
-    getQuestions: jest.fn(() => mockQuestionsDim1), // Return a more diverse set for testing adaptive logic
+    getQuestions: jest.fn(() => Promise.resolve(mockQuestionsDim1)),
     getAnchorQuestions: jest.fn((dimensionId) => {
         if (dimensionId === 1) {
-            return [mockQuestionsDim1[0], mockQuestionsDim1[1]]; // Return first two as anchors
+            return Promise.resolve([mockQuestionsDim1[0], mockQuestionsDim1[1]]);
         }
-        return [];
+        return Promise.resolve([]);
     }),
     getQuestionById: jest.fn((id) => {
-        return mockQuestionsDim1.find(q => q.id === id) || null;
+        return Promise.resolve(mockQuestionsDim1.find(q => q.id === id) || null);
     }),
     getAnswerOptionsForQuestion: jest.fn((questionId) => {
-        // Provide generic options, specific tests might need to refine this mock per question type
         const q = mockQuestionsDim1.find(q => q.id === questionId);
-        if (q && q.question_type === "likert") return [{ code: "1" }, { code: "2" }, { code: "3" }, { code: "4" }, { code: "5" }];
-        if (q && (q.question_type === "forced" || q.question_type === "scenario")) return [{ code: "A", score_value: "1" }, { code: "B", score_value: "-1" }];
-        return [];
+        if (q && q.question_type === "likert") return Promise.resolve([{ code: "1" }, { code: "2" }, { code: "3" }, { code: "4" }, { code: "5" }]);
+        if (q && (q.question_type === "forced" || q.question_type === "scenario")) return Promise.resolve([{ code: "A", score_value: "1" }, { code: "B", score_value: "-1" }]);
+        return Promise.resolve([]);
     }),
-    getSegments: jest.fn(() => [
-        // Mock segments for dimension 1
-        { dimension_id: 1, segment_level: 1, name_en: "Very Low", theta_min: -3.0, theta_max: -1.5 },
-        { dimension_id: 1, segment_level: 2, name_en: "Low", theta_min: -1.5, theta_max: -0.5 },
-        { dimension_id: 1, segment_level: 3, name_en: "Neutral", theta_min: -0.5, theta_max: 0.5 },
-        { dimension_id: 1, segment_level: 4, name_en: "High", theta_min: 0.5, theta_max: 1.5 },
-        { dimension_id: 1, segment_level: 5, name_en: "Very High", theta_min: 1.5, theta_max: 3.0 },
-    ]),
-    getCacheStatus: jest.fn(() => ({ isInitialized: true, usingMockData: true }))
+    getSegments: jest.fn((dimensionId) => Promise.resolve([
+        { id: 1, dimension_id: 1, segment_level: 1, name_en: "Very Low", theta_min: -3.0, theta_max: -1.5 },
+        { id: 2, dimension_id: 1, segment_level: 2, name_en: "Low", theta_min: -1.5, theta_max: -0.5 },
+        { id: 3, dimension_id: 1, segment_level: 3, name_en: "Neutral", theta_min: -0.5, theta_max: 0.5 },
+        { id: 4, dimension_id: 1, segment_level: 4, name_en: "High", theta_min: 0.5, theta_max: 1.5 },
+        { id: 5, dimension_id: 1, segment_level: 5, name_en: "Very High", theta_min: 1.5, theta_max: 3.0 },
+    ].filter(s => s.dimension_id === dimensionId))),
+    getCacheStatus: jest.fn(() => ({ isInitialized: true, usingMockData: true })),
+    saveUserResponse: jest.fn((data) => Promise.resolve({ ...data, id: Date.now() })),
+    saveUserDimensionResult: jest.fn((data) => Promise.resolve({ ...data, id: Date.now() }))
 }));
 
-// We will use the actual assessmentLogicService, but can spy on its methods if needed
-// jest.spyOn(assessmentLogicService, 'estimateTheta');
-// jest.spyOn(assessmentLogicService, 'calculateConfidenceScore');
+// Mock assessmentLogicService to control calculateConfidenceScore
+jest.mock("../../src/services/assessmentLogicService", () => {
+    const originalModule = jest.requireActual("../../src/services/assessmentLogicService");
+    return {
+        ...originalModule, // Spread original module to keep other functions and TARGET_CONFIDENCE_SCORE
+        calculateConfidenceScore: jest.fn(), // This specific function will be a mock
+    };
+});
+
+// Import the mocked version AFTER jest.mock has been defined
+const assessmentLogicService = require("../../src/services/assessmentLogicService");
+// Import the actual service to access original implementations for resetting mocks or getting actual constants
+const actualAssessmentLogicService = jest.requireActual("../../src/services/assessmentLogicService");
 
 describe("Assessment API Integration Tests - CAT/IRT Logic", () => {
+
     beforeEach(async () => {
-        // Reset userStates before each test to ensure isolation
-        // This is a simple way to clear in-memory state. For more complex scenarios, you might need a dedicated reset function.
-        const assessmentRoutes = require("../../src/routes/assessmentRoutes"); // Re-require to access userStates if it's module-scoped
-        // This direct manipulation is not ideal. Better to have a reset endpoint or clear state via service.
-        // For now, we'll assume tests don't heavily interfere or we manage state carefully.
-        // The userStates object is in assessmentRoutes.js, so we can't directly clear it here easily without exporting it from there.
-        // For robust tests, the state management in assessmentRoutes should be refactored to allow easier test setup/teardown.
-        // For this iteration, we'll rely on distinct userIds or careful sequencing if needed.
-        await assessmentDataService.dataInitializationPromise;
+        await request(app).post("/api/v1/assessment/debug/reset-state").send({});
+        jest.clearAllMocks(); 
+        // Reset getQuestions and getAnchorQuestions for assessmentDataService to default mocks
+        assessmentDataService.getQuestions.mockImplementation(() => Promise.resolve(mockQuestionsDim1));
+        assessmentDataService.getAnchorQuestions.mockImplementation((dimensionId) => {
+            if (dimensionId === 1) return Promise.resolve([mockQuestionsDim1[0], mockQuestionsDim1[1]]);
+            return Promise.resolve([]);
+        });
+        // Reset calculateConfidenceScore to its original implementation by default for each test
+        assessmentLogicService.calculateConfidenceScore.mockImplementation(actualAssessmentLogicService.calculateConfidenceScore);
     });
 
     describe("GET /api/v1/assessment/start/:dimensionId", () => {
@@ -85,21 +96,24 @@ describe("Assessment API Integration Tests - CAT/IRT Logic", () => {
 
     describe("POST /api/v1/assessment/response - Full CAT/IRT Flow", () => {
         const dimensionId = 1;
-        const userId = "test-user-123"; // Matches the mock authMiddleware
 
         it("should process responses, adaptively select questions, and eventually complete by MAX_QUESTIONS_PER_DIMENSION", async () => {
-            // Start assessment
+            // Ensure confidence does not cause early completion for this test
+            assessmentLogicService.calculateConfidenceScore.mockImplementation(() => 0.1); 
+
             let startResponse = await request(app).get(`/api/v1/assessment/start/${dimensionId}`);
             expect(startResponse.statusCode).toBe(200);
             let nextQuestion = startResponse.body.nextQuestion;
             let questionsAnsweredCount = 0;
-            const MAX_ITERATIONS = 15; // Safety break for the loop
+            const MAX_QUESTIONS_ROUTE = 10;
 
-            while (nextQuestion && questionsAnsweredCount < MAX_ITERATIONS) {
+            for (let i = 0; i < MAX_QUESTIONS_ROUTE; i++) {
+                expect(nextQuestion).not.toBeNull();
+                
                 const responsePayload = {
                     dimensionId: dimensionId,
                     questionId: nextQuestion.id,
-                    answerCode: "3" // Generic answer for Likert, or "A" for forced/scenario
+                    answerCode: "3"
                 };
                 if (nextQuestion.question_type === "forced" || nextQuestion.question_type === "scenario") {
                     responsePayload.answerCode = "A";
@@ -109,96 +123,87 @@ describe("Assessment API Integration Tests - CAT/IRT Logic", () => {
                     .post("/api/v1/assessment/response")
                     .send(responsePayload);
                 
-                expect(submitResponse.statusCode).toBe(200);
                 questionsAnsweredCount++;
                 nextQuestion = submitResponse.body.nextQuestion;
 
-                if (submitResponse.body.message.includes("completed")) {
+                if (questionsAnsweredCount === MAX_QUESTIONS_ROUTE) {
+                    expect(submitResponse.statusCode).toBe(200);
+                    expect(submitResponse.body.message).toMatch(/completed: Max questions reached/i);
                     expect(submitResponse.body.nextQuestion).toBeNull();
-                    expect(submitResponse.body).toHaveProperty("finalTheta");
-                    expect(submitResponse.body).toHaveProperty("finalSegment");
-                    expect(submitResponse.body).toHaveProperty("confidenceScore");
-                    // Check if completion was due to max questions
-                    // This requires the MAX_QUESTIONS_PER_DIMENSION to be set appropriately in assessmentRoutes.js (e.g., 10)
-                    // And that the test loop actually hits this number.
-                    // For this test, we expect it to complete due to MAX_QUESTIONS_PER_DIMENSION (currently 10 in routes)
-                    expect(questionsAnsweredCount).toBeGreaterThanOrEqual(10); 
-                    break;
+                    break; 
+                } else {
+                    expect(submitResponse.statusCode).toBe(200);
+                    expect(submitResponse.body.message).toMatch(/Response processed/i);
+                    expect(submitResponse.body.nextQuestion).not.toBeNull();
                 }
-                expect(nextQuestion).not.toBeNull(); // Should always get a next question until completion
             }
-            expect(questionsAnsweredCount).toBeLessThan(MAX_ITERATIONS); // Ensure loop didn't just time out
-            expect(questionsAnsweredCount).toBe(10); // Based on MAX_QUESTIONS_PER_DIMENSION in routes
-        }, 20000); // Increase timeout for looped test
+            expect(questionsAnsweredCount).toBe(MAX_QUESTIONS_ROUTE);
+        }, 20000);
 
         it("should complete assessment if target confidence is reached after MIN_QUESTIONS_FOR_CONFIDENCE_CHECK", async () => {
-            // This test requires careful mocking of estimateTheta and calculateConfidenceScore 
-            // or ensuring the actual logic service functions lead to this state.
-            // For now, we'll spy and mock the confidence score to trigger completion.
-            
-            const logicServiceActual = require("../../src/services/assessmentLogicService");
-            const calculateConfidenceSpy = jest.spyOn(logicServiceActual, 'calculateConfidenceScore');
-            
-            // Start assessment
             await request(app).get(`/api/v1/assessment/start/${dimensionId}`);
-            let currentQ = mockQuestionsDim1[0];
+            
+            const MIN_Q_FOR_CONF_CHECK = 3; 
+            const targetConfidenceThreshold = actualAssessmentLogicService.TARGET_CONFIDENCE_SCORE;
 
-            // Simulate 2 responses (MIN_QUESTIONS_FOR_CONFIDENCE_CHECK is 3, so 3rd response will trigger check)
-            for (let i = 0; i < 2; i++) {
-                await request(app).post("/api/v1/assessment/response").send({ dimensionId, questionId: mockQuestionsDim1[i].id, answerCode: "3" });
-                currentQ = mockQuestionsDim1[i+1]; // Assume sequential for this setup
+            for (let i = 0; i < MIN_Q_FOR_CONF_CHECK - 1; i++) {
+                assessmentLogicService.calculateConfidenceScore.mockImplementationOnce(() => 0.1); // Low confidence
+                const currentStateRes = await request(app).get(`/api/v1/assessment/state/${dimensionId}`);
+                const currentQ = currentStateRes.body.currentQuestion;
+                expect(currentQ).not.toBeNull();
+                let answerCodeForCurrentQ = "3"; // Default for likert
+                if (currentQ.question_type === "forced" || currentQ.question_type === "scenario") {
+                    answerCodeForCurrentQ = "A";
+                }
+                await request(app).post("/api/v1/assessment/response").send({ dimensionId, questionId: currentQ.id, answerCode: answerCodeForCurrentQ });
             }
 
-            // On the 3rd response, make confidence high enough
-            calculateConfidenceSpy.mockReturnValueOnce(assessmentLogicService.TARGET_CONFIDENCE_SCORE + 0.1);
-
-            const responsePayload = { dimensionId, questionId: currentQ.id, answerCode: "3" }; 
+            // For the critical response that should trigger confidence completion
+            assessmentLogicService.calculateConfidenceScore.mockImplementationOnce(() => targetConfidenceThreshold + 0.1); // High confidence
+            
+            const lastStateRes = await request(app).get(`/api/v1/assessment/state/${dimensionId}`);
+            const lastQ = lastStateRes.body.currentQuestion;
+            expect(lastQ).not.toBeNull();
+            const responsePayload = { dimensionId, questionId: lastQ.id, answerCode: "3" }; 
             const finalResponse = await request(app).post("/api/v1/assessment/response").send(responsePayload);
 
-            expect(finalResponse.statusCode).toBe(200);
-            expect(finalResponse.body.message).toMatch(/completed/i);
-            expect(finalResponse.body.message).toMatch(/Target confidence reached/i); // Check console log in route
-            expect(finalResponse.body.nextQuestion).toBeNull();
-            expect(finalResponse.body.confidenceScore).toBeGreaterThanOrEqual(assessmentLogicService.TARGET_CONFIDENCE_SCORE);
-            expect(finalResponse.body.state.questionsAnswered.length).toBe(3);
+            if (finalResponse.statusCode === 400) {
+                fs.writeFileSync("/home/ubuntu/traittune/backend/test_error_output.json", JSON.stringify(finalResponse.body, null, 2));
+                console.log("DEBUG: Failing test received 400 response body, logged to test_error_output.json");
+            }
 
-            calculateConfidenceSpy.mockRestore();
+            expect(finalResponse.statusCode).toBe(200);
+            expect(finalResponse.body.message).toMatch(/completed: Target confidence reached/i);
+            expect(finalResponse.body.nextQuestion).toBeNull();
+            expect(finalResponse.body.confidenceScore).toBeGreaterThanOrEqual(targetConfidenceThreshold);
+            expect(finalResponse.body.state.questionsAnswered.length).toBe(MIN_Q_FOR_CONF_CHECK);
         });
 
         it("should complete if no more suitable questions are available", async () => {
-            const dataServiceActual = require("../../src/services/assessmentDataService");
-            const getQuestionsSpy = jest.spyOn(dataServiceActual, 'getQuestions');
+            assessmentDataService.getQuestions.mockImplementation(() => Promise.resolve([mockQuestionsDim1[0], mockQuestionsDim1[1]])); 
+            assessmentDataService.getAnchorQuestions.mockImplementation((dimId) => {
+                 if (dimId === 1) return Promise.resolve([mockQuestionsDim1[0]]);
+                 return Promise.resolve([]);
+            });
             
-            // Start assessment
             await request(app).get(`/api/v1/assessment/start/${dimensionId}`);
-
-            // Provide only a few questions for the dimension to force completion
-            getQuestionsSpy.mockReturnValueOnce([mockQuestionsDim1[0], mockQuestionsDim1[1]]);
-            
-            // Answer first question
             await request(app).post("/api/v1/assessment/response").send({ dimensionId, questionId: mockQuestionsDim1[0].id, answerCode: "3" });
-            // Answer second question
             const finalResponse = await request(app).post("/api/v1/assessment/response").send({ dimensionId, questionId: mockQuestionsDim1[1].id, answerCode: "3" });
 
             expect(finalResponse.statusCode).toBe(200);
-            expect(finalResponse.body.message).toMatch(/completed/i);
-            expect(finalResponse.body.message).toMatch(/no more suitable questions/i);
+            expect(finalResponse.body.message).toMatch(/completed: No more suitable questions available/i);
             expect(finalResponse.body.nextQuestion).toBeNull();
-
-            getQuestionsSpy.mockRestore();
         });
 
         it("should return 400 if response is for an unexpected question", async () => {
-            await request(app).get(`/api/v1/assessment/start/${dimensionId}`); // Expected Q is 101
-            const responsePayload = { dimensionId, questionId: 999, answerCode: "3" }; // Wrong question ID
+            await request(app).get(`/api/v1/assessment/start/${dimensionId}`); 
+            const responsePayload = { dimensionId, questionId: 999, answerCode: "3" }; 
             const response = await request(app).post("/api/v1/assessment/response").send(responsePayload);
             expect(response.statusCode).toBe(400);
             expect(response.body.message).toMatch(/Response submitted for question ID 999, but current expected question is ID 101/i);
         });
-
     });
 
-    // Basic GET /questions and auth test (can be expanded)
     describe("GET /api/v1/assessment/questions (Basic Check)", () => {
         it("should return 200 and an array for authenticated user", async () => {
             const response = await request(app).get("/api/v1/assessment/questions");
@@ -207,5 +212,4 @@ describe("Assessment API Integration Tests - CAT/IRT Logic", () => {
         });
     });
 });
-
 

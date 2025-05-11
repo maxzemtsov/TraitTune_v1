@@ -1,4 +1,4 @@
-const { getSegments } = require("./assessmentDataService");
+const assessmentDataService = require("./assessmentDataService"); // Changed to require the service directly
 
 // Constants from PRD or psychometric guidelines
 const THETA_MIN = -3;
@@ -18,8 +18,7 @@ const TARGET_CONFIDENCE_SCORE = 0.80;
  */
 const calculate2PLProbability = (theta, item_a, item_b, item_c = 0) => {
   if (item_a === null || item_b === null || item_a === undefined || item_b === undefined) {
-    // console.warn("Item parameters (a or b) are null/undefined, cannot calculate probability.");
-    return 0.5; // Return neutral probability or handle as an error
+    return 0.5; 
   }
   const exponent = -parseFloat(item_a) * (theta - parseFloat(item_b));
   const logisticPart = 1 / (1 + Math.exp(exponent));
@@ -37,14 +36,12 @@ const calculate2PLProbability = (theta, item_a, item_b, item_c = 0) => {
  */
 const getDichotomousResponse = (question, rawResponse, answerOptions) => {
   if (!question) return null;
-  let keyedResponse = 0; // Default to non-keyed
+  let keyedResponse = 0;
 
   switch (question.question_type) {
     case "likert":
       const likertVal = parseInt(rawResponse);
-      if (isNaN(likertVal) || likertVal < 1 || likertVal > 5) return null; // Invalid Likert response
-      // Standard: 3,4,5 -> 1 (keyed); 1,2 -> 0 (non-keyed)
-      // Reversed: 1,2,3 -> 1 (keyed); 4,5 -> 0 (non-keyed) (effectively, if it aligns with positive pole after reversal)
+      if (isNaN(likertVal) || likertVal < 1 || likertVal > 5) return null;
       if (question.is_reverse) {
         if (likertVal <= 3) keyedResponse = 1;
         else keyedResponse = 0;
@@ -57,11 +54,9 @@ const getDichotomousResponse = (question, rawResponse, answerOptions) => {
     case "forced":
     case "scenario":
       const chosenOption = answerOptions.find(opt => opt.code === rawResponse);
-      if (!chosenOption || chosenOption.score_value === null || chosenOption.score_value === undefined) return null; // Invalid option code or missing score_value
+      if (!chosenOption || chosenOption.score_value === null || chosenOption.score_value === undefined) return null;
       
       const scoreValue = parseInt(chosenOption.score_value);
-      // Standard: score_value = 1 -> keyed (1); score_value = -1 or 0 -> non-keyed (0)
-      // Reversed: score_value = -1 -> keyed (1); score_value = 1 or 0 -> non-keyed (0)
       if (question.is_reverse) {
         if (scoreValue === -1) keyedResponse = 1;
         else keyedResponse = 0;
@@ -81,10 +76,11 @@ const getDichotomousResponse = (question, rawResponse, answerOptions) => {
  * Maps an estimated theta score to a segment for a given dimension.
  * @param {number} theta The estimated trait level.
  * @param {number} dimensionId The ID of the dimension.
- * @returns {object|null} The segment object or null if not found.
+ * @returns {Promise<object|null>} The segment object or null if not found.
  */
-const getSegmentForTheta = (theta, dimensionId) => {
-  const segments = getSegments(); 
+const getSegmentForTheta = async (theta, dimensionId) => {
+  // Now calls the async version from assessmentDataService
+  const segments = await assessmentDataService.getSegments(); 
   const dimensionSegments = segments.filter(s => s.dimension_id === parseInt(dimensionId));
   
   dimensionSegments.sort((a, b) => a.segment_level - b.segment_level);
@@ -120,25 +116,21 @@ const estimateTheta = (responses, currentTheta) => {
   let newTheta = parseFloat(currentTheta);
   let N = responses.length;
 
-  // Simplified EAP-like update for demonstration, NOT a full IRT implementation.
-  // This should be replaced with a robust IRT estimation function.
   if (N > 0) {
     const lastResponse = responses[N - 1];
     const prob_correct_at_current_theta = calculate2PLProbability(newTheta, lastResponse.item_a, lastResponse.item_b);
 
-    if (lastResponse.dichotomousResponse === 1) { // Keyed response
+    if (lastResponse.dichotomousResponse === 1) { 
       newTheta += (1 - prob_correct_at_current_theta) * (0.5 / Math.sqrt(N + 1)); 
-    } else { // Non-keyed response
+    } else { 
       newTheta -= prob_correct_at_current_theta * (0.5 / Math.sqrt(N + 1));
     }
   }
   
   newTheta = Math.max(THETA_MIN, Math.min(THETA_MAX, newTheta));
 
-  // Crude Standard Error simulation: SE decreases as N increases.
-  // This needs to be derived from the IRT model (e.g., inverse of Fisher Information).
-  let standardError = 1.0 / Math.sqrt(N + 1); // Example: starts high, decreases
-  standardError = Math.max(0.1, standardError); // Ensure SE doesn't go to zero
+  let standardError = 1.0 / Math.sqrt(N + 1); 
+  standardError = Math.max(0.1, standardError); 
 
   return { newTheta: parseFloat(newTheta.toFixed(4)), standardError: parseFloat(standardError.toFixed(4)) };
 };
@@ -149,14 +141,11 @@ const estimateTheta = (responses, currentTheta) => {
  * @returns {number} Confidence score (0 to 1, higher is better).
  */
 const calculateConfidenceScore = (standardError) => {
-  // This is a heuristic. A proper mapping or use of SE directly might be better.
-  // PRD mentions target confidence > 0.80. Let's map SE to this.
-  // Lower SE means higher confidence.
-  if (standardError <= 0.32) return 0.90; // Corresponds to ~10 items with SE ~ 1/sqrt(10) approx 0.316
+  if (standardError <= 0.32) return 0.90; 
   if (standardError <= 0.4) return 0.80;
   if (standardError <= 0.5) return 0.70;
   if (standardError <= 0.7) return 0.60;
-  return 0.50; // Low confidence for SE > 0.7
+  return 0.50; 
 };
 
 module.exports = {
@@ -165,6 +154,6 @@ module.exports = {
   getSegmentForTheta,
   estimateTheta,
   calculateConfidenceScore,
-  TARGET_CONFIDENCE_SCORE // Export constant
+  TARGET_CONFIDENCE_SCORE 
 };
 

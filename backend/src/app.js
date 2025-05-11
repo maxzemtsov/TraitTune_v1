@@ -14,8 +14,10 @@ app.use(cors()); // Enable CORS for all routes - configure appropriately for pro
 app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
-// Initialize Cron Jobs
-cronService.initializeCronJobs();
+// Initialize Cron Jobs only if not in test environment
+if (process.env.NODE_ENV !== "test") {
+  cronService.initializeCronJobs();
+}
 
 // API Routes
 app.get("/api/v1/health", (req, res) => {
