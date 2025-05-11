@@ -1,7 +1,41 @@
+"use client";
+
+import { toast } from 'sonner';
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
+// Example of replacing useToast with sonner's toast
+// Old: toast({ title: 'Error', description: 'Something went wrong' });
+// New: toast.error('Something went wrong'); // Or toast('Something went wrong') for a generic message
+// Or toast.success('Success!') for success messages
+
+// Replace this line
+// import { useToast } from "@/components/ui/use-toast";
+// With this line (if not already present, or adjust as needed)
+// import { toast } from 'sonner'; // Assuming sonner is installed and configured
+
+// ... (rest of AssessmentPage component, ensure all `toast({...})` calls are updated)
+
+// In useEffect for Auth State Change & Initial Anonymous Sign-in:
+// Replace:
+// toast({ title: t("error.title"), description: t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""), variant: "destructive" });
+// With (example - adjust severity/type as needed):
+// toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""));
+
+// In handleUserResponse, for submissionResult.success and submissionResult.error:
+// Replace similar toast calls with sonner's equivalents, e.g.:
+// if (submissionResult.success) {
+//     toast.success(t("assessment.answer_acknowledged"));
+// } else {
+//     toast.error(t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}` : ""));
+// }
+
+// Make sure to import `toast` from `sonner` at the top of the file if it's not already there.
+// import { toast } from 'sonner';
+
 // /home/ubuntu/traittune_frontend/src/app/assessment/page.tsx
 // Integrating API calls for fetching questions and submitting answers
-
-"use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -26,7 +60,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import { useToast } from "@/components/ui/use-toast";
+// import { toast } from 'sonner'; // Corrected import for sonner - This was duplicated, removed one.
 import { useI18n } from "@/components/providers/I18nProvider";
 
 export interface MessageOption {
@@ -47,7 +81,7 @@ export interface Message {
 
 const AssessmentPage = () => {
   const router = useRouter();
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Removed useToast hook
   const { t, setLocale, locale } = useI18n();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -116,7 +150,7 @@ const AssessmentPage = () => {
                 addMessage({ text: t("loading.text_anonymous_signin"), sender: "system", requiresInput: false });
                 await supabase.auth.signInAnonymously();
             } catch (error: any) {
-                toast({ title: t("error.title"), description: t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""), variant: "destructive" });
+                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : "")); // Corrected toast call
                 addMessage({ text: t("error.anonymous_signin_failed_contact_support"), sender: "system", requiresInput: false });
             }
         }
@@ -129,14 +163,14 @@ const AssessmentPage = () => {
                 addMessage({ text: t("loading.text_anonymous_signin"), sender: "system", requiresInput: false });
                 await supabase.auth.signInAnonymously();
             } catch (error: any) {
-                toast({ title: t("error.title"), description: t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""), variant: "destructive" });
+                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : "")); // Corrected toast call
                 addMessage({ text: t("error.anonymous_signin_failed_contact_support"), sender: "system", requiresInput: false });
             }
         }
     };
     checkUser();
     return () => { authListener?.subscription.unsubscribe(); };
-  }, [addMessage, router, t, toast, assessmentPhase, userName]);
+  }, [addMessage, router, t, assessmentPhase, userName, locale]); // Added locale to dependency array as t() depends on it
 
   // Onboarding Dialogue Flow & Initial Question Fetch
   useEffect(() => {
@@ -198,9 +232,9 @@ const AssessmentPage = () => {
         };
         const submissionResult = await submitAnswer(submission);
         if (submissionResult.success) {
-            addMessage({ text: t("assessment.answer_acknowledged"), sender: "bot", requiresInput: false });
+            toast.success(t("assessment.answer_acknowledged")); // Corrected toast call
         } else {
-            addMessage({ text: t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}`: ""), sender: "system", requiresInput: false });
+            toast.error(t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}`: "")); // Corrected toast call
         }
       }
       // Trigger registration prompt after a few questions (example)
@@ -212,7 +246,7 @@ const AssessmentPage = () => {
       }
     }
     setIsLoading(false);
-  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId]);
+  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId, locale]); // Added locale to dependency array
 
   const handleOAuthSignIn = async (provider: Provider) => {
     setIsLoading(true);
