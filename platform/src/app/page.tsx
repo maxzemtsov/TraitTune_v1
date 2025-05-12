@@ -1,47 +1,11 @@
 "use client";
 
 import { toast } from 'sonner';
-// ... (rest of the imports)
-
-// ... (rest of the code)
-
-// Example of replacing useToast with sonner's toast
-// Old: toast({ title: 'Error', description: 'Something went wrong' });
-// New: toast.error('Something went wrong'); // Or toast('Something went wrong') for a generic message
-// Or toast.success('Success!') for success messages
-
-// Replace this line
-// import { useToast } from "@/components/ui/use-toast";
-// With this line (if not already present, or adjust as needed)
-// import { toast } from 'sonner'; // Assuming sonner is installed and configured
-
-// ... (rest of AssessmentPage component, ensure all `toast({...})` calls are updated)
-
-// In useEffect for Auth State Change & Initial Anonymous Sign-in:
-// Replace:
-// toast({ title: t("error.title"), description: t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""), variant: "destructive" });
-// With (example - adjust severity/type as needed):
-// toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""));
-
-// In handleUserResponse, for submissionResult.success and submissionResult.error:
-// Replace similar toast calls with sonner's equivalents, e.g.:
-// if (submissionResult.success) {
-//     toast.success(t("assessment.answer_acknowledged"));
-// } else {
-//     toast.error(t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}` : ""));
-// }
-
-// Make sure to import `toast` from `sonner` at the top of the file if it's not already there.
-// import { toast } from 'sonner';
-
-// /home/ubuntu/traittune_frontend/src/app/assessment/page.tsx
-// Integrating API calls for fetching questions and submitting answers
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient"; 
 import type { Provider } from "@supabase/supabase-js";
-import { getNextQuestion, submitAnswer, UserAnswer } from "@/lib/api"; // Import API functions
+import { getNextQuestion, submitAnswer, UserAnswer } from "@/lib/api";
 
 import ChatWindow from "@/components/ChatWindow"; 
 import ChatInput from "@/components/ChatInput";
@@ -59,8 +23,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-
-// import { toast } from 'sonner'; // Corrected import for sonner - This was duplicated, removed one.
 import { useI18n } from "@/components/providers/I18nProvider";
 
 export interface MessageOption {
@@ -76,12 +38,11 @@ export interface Message {
   questionType?: "text" | "single-choice" | "multi-choice" | "likert" | "forced-choice";
   options?: MessageOption[];
   requiresInput?: boolean; 
-  question_id?: string; // To store the ID of the question if it came from the backend
+  question_id?: string;
 }
 
 const AssessmentPage = () => {
   const router = useRouter();
-  // const { toast } = useToast(); // Removed useToast hook
   const { t, setLocale, locale } = useI18n();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -91,7 +52,7 @@ const AssessmentPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null); 
   const [assessmentPhase, setAssessmentPhase] = useState<"initial_greeting" | "name_prompt" | "goal_prompt" | "ice_breaker_prompt" | "metadata_prompt" | "consent_prompt" | "assessment_questions" | "registration_prompt" | "results">("initial_greeting");
-  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(undefined); // For managing assessment sessions
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(undefined);
 
   const [currentMode, setCurrentMode] = useState<"chat" | "dialogue">("chat"); 
   const [isMuted, setIsMuted] = useState(false);
@@ -109,7 +70,6 @@ const AssessmentPage = () => {
     setMessages(prev => [...prev, { ...newMessage, id: Date.now().toString() + Math.random(), timestamp: new Date() }]);
   }, []);
 
-  // Fetch next question from API
   const fetchAndDisplayNextQuestion = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
@@ -117,9 +77,8 @@ const AssessmentPage = () => {
     if (nextQuestionMessage) {
       addMessage(nextQuestionMessage);
     } else {
-      // Handle assessment completion or error
       addMessage({ text: t("assessment.no_more_questions"), sender: "system", requiresInput: false });
-      setAssessmentPhase("results"); // Or a specific completion phase
+      setAssessmentPhase("results");
       if (currentSessionId) {
         router.push(`/results?sessionId=${currentSessionId}`);
       } else {
@@ -127,9 +86,8 @@ const AssessmentPage = () => {
       }
     }
     setIsLoading(false);
-  }, [userId, currentSessionId, locale, addMessage, t, router]); // Added router to dependency array
+  }, [userId, currentSessionId, locale, addMessage, t, router]);
 
-  // Auth State Change Listener & Initial Anonymous Sign-in
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
@@ -155,7 +113,7 @@ const AssessmentPage = () => {
                 addMessage({ text: t("loading.text_anonymous_signin"), sender: "system", requiresInput: false });
                 await supabase.auth.signInAnonymously();
             } catch (error: any) {
-                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : "")); // Corrected toast call
+                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""));
                 addMessage({ text: t("error.anonymous_signin_failed_contact_support"), sender: "system", requiresInput: false });
             }
         }
@@ -168,27 +126,24 @@ const AssessmentPage = () => {
                 addMessage({ text: t("loading.text_anonymous_signin"), sender: "system", requiresInput: false });
                 await supabase.auth.signInAnonymously();
             } catch (error: any) {
-                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : "")); // Corrected toast call
+                toast.error(t("error.anonymous_signin_failed") + (error.message ? `: ${error.message}` : ""));
                 addMessage({ text: t("error.anonymous_signin_failed_contact_support"), sender: "system", requiresInput: false });
             }
         }
     };
     checkUser();
     return () => { authListener?.subscription.unsubscribe(); };
-  }, [addMessage, router, t, assessmentPhase, userName, locale]); // Added locale to dependency array as t() depends on it
+  }, [addMessage, router, t, assessmentPhase, userName, locale]);
 
-  // Onboarding Dialogue Flow & Initial Question Fetch
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
     const lastMessage = messages.length > 0 ? messages[messages.length -1] : null;
     
     if (assessmentPhase === "name_prompt" && lastMessage?.sender !== "bot") {
       addMessage({ text: t("onboarding.olivia_welcome_name_prompt"), sender: "bot", questionType: "text", requiresInput: true });
-    } else if (assessmentPhase === "consent_prompt" && lastMessage?.sender === "user") { // Assuming user just gave consent
+    } else if (assessmentPhase === "consent_prompt" && lastMessage?.sender === "user") {
         addMessage({ text: t("assessment.starting"), sender: "system", requiresInput: false });
         setAssessmentPhase("assessment_questions");
-        // TODO: Start a new session if applicable, then fetch first question
-        // setCurrentSessionId(newSessionId); // Example: You'll need to generate/fetch a real session ID
         fetchAndDisplayNextQuestion(); 
     }
   }, [assessmentPhase, isAuthenticated, userId, addMessage, t, messages, fetchAndDisplayNextQuestion]);
@@ -220,15 +175,12 @@ const AssessmentPage = () => {
         ], requiresInput: true });
       setAssessmentPhase("goal_prompt");
     } else if (assessmentPhase === "goal_prompt") {
-      // TODO: Handle goal selection, then move to ice_breaker_prompt or metadata_prompt
       addMessage({ text: t("onboarding.ice_breaker_prompt_text"), sender: "bot", questionType: "text", requiresInput: true });
       setAssessmentPhase("ice_breaker_prompt");
     } else if (assessmentPhase === "ice_breaker_prompt") {
-      // TODO: Handle ice breaker, then move to metadata_prompt
-      addMessage({ text: t("onboarding.metadata_prompt_text"), sender: "bot", questionType: "text", requiresInput: true }); // This is a placeholder, a form or LinkedIn option should be here
+      addMessage({ text: t("onboarding.metadata_prompt_text"), sender: "bot", questionType: "text", requiresInput: true });
       setAssessmentPhase("metadata_prompt");
     } else if (assessmentPhase === "metadata_prompt") {
-      // TODO: Handle metadata, then move to consent_prompt
       addMessage({ text: t("onboarding.consent_dialogue_text"), sender: "bot", questionType: "single-choice", 
         options: [{value: "agree", label: t("common.agree")}, {value: "disagree", label: t("common.disagree")} ],
         requiresInput: true });
@@ -237,12 +189,9 @@ const AssessmentPage = () => {
         if (optionValue === "agree") {
             addMessage({ text: t("assessment.starting"), sender: "system", requiresInput: false });
             setAssessmentPhase("assessment_questions");
-            // Potentially create a new session ID here if not already done
-            // For example: setCurrentSessionId(uuidv4()); 
             fetchAndDisplayNextQuestion();
         } else {
             addMessage({ text: t("onboarding.consent_declined"), sender: "system", requiresInput: false });
-            // Handle consent declined (e.g., end session or redirect)
         }
     } else if (assessmentPhase === "assessment_questions") {
       if (lastBotMessage?.question_id) {
@@ -254,12 +203,11 @@ const AssessmentPage = () => {
         };
         const submissionResult = await submitAnswer(submission);
         if (submissionResult.success) {
-            toast.success(t("assessment.answer_acknowledged")); // Corrected toast call
+            toast.success(t("assessment.answer_acknowledged"));
         } else {
-            toast.error(t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}`: "")); // Corrected toast call
+            toast.error(t("error.answer_submission_failed") + (submissionResult.message ? `: ${submissionResult.message}`: ""));
         }
       }
-      // Trigger registration prompt after a few questions (example)
       if (messages.filter(m => m.sender === "user").length > 2 && isAnonymous) { 
         setAssessmentPhase("registration_prompt");
         setShowRegistrationModal(true);
@@ -268,71 +216,74 @@ const AssessmentPage = () => {
       }
     }
     setIsLoading(false);
-  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId, locale, router]); // Added router to dependency array
+  }, [isLoading, isAuthenticated, userId, userName, assessmentPhase, addMessage, t, messages, isAnonymous, fetchAndDisplayNextQuestion, currentSessionId, locale, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
     setIsLoading(true);
     await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.href } });
-    // onAuthStateChange handles the rest
     setIsLoading(false);
   };
 
   if (!isAuthenticated && assessmentPhase === "initial_greeting" && messages.length < 2) {
-    return <div className="flex items-center justify-center h-screen text-lg">{t("loading.initializing")}</div>;
+    return <div className="flex items-center justify-center h-screen text-lg bg-gradient-to-br from-slate-900 to-slate-800 text-slate-200">{t("loading.initializing")}</div>;
   }
 
   return (
-    <div className={`flex flex-col h-screen items-center p-4 md:p-0 ${theme === "dark" ? "dark bg-background text-foreground" : "bg-background text-foreground"}`}>
-      {/* Header with Toggles */}
-      <div className={`w-full max-w-2xl flex justify-between items-center py-4 px-2 border-b mb-4 border-border`}>
-        <span className={`font-bold text-xl ${theme === "dark" ? "text-indigo-400" : "text-indigo-600"}`}>TraitTune</span>
-        <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" onClick={toggleLanguage} className="text-muted-foreground hover:text-foreground">{locale === "en" ? "RU" : "EN"}</Button>
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground">{theme === "light" ? <MoonIcon /> : <SunIcon />}</Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="text-muted-foreground hover:text-foreground">{isMuted ? <SpeakerOffIcon /> : <SpeakerLoudIcon />}</Button>
-            <Button variant="ghost" size="icon" onClick={() => setCurrentMode(currentMode === "chat" ? "dialogue" : "chat")} className="text-muted-foreground hover:text-foreground">{currentMode === "chat" ? <PersonIcon /> : <ChatBubbleIcon />}</Button>
-            {isAuthenticated && !isAnonymous && <Button variant="outline" onClick={async () => { await supabase.auth.signOut(); router.push("/");}}>{t("auth.sign_out")}</Button>}
+    <div className={`flex flex-col h-screen items-center justify-center p-4 md:p-0 ${theme === "dark" ? "dark bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100" : "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-800"}`}>
+      {/* Header with Toggles - Glassmorphism */}
+      <div className={`w-full max-w-4xl flex justify-between items-center py-4 px-6 mb-8 rounded-xl shadow-lg ${theme === "dark" ? "bg-slate-800/30 backdrop-blur-md border border-slate-700/50" : "bg-white/30 backdrop-blur-md border border-slate-300/50"}`}>
+        <span className={`font-bold text-2xl ${theme === "dark" ? "text-sky-400" : "text-sky-600"}`}>TraitTune</span>
+        <div className="flex items-center space-x-3">
+            <Button variant="ghost" size="icon" onClick={toggleLanguage} className={`rounded-full ${theme === "dark" ? "text-slate-300 hover:text-sky-400 hover:bg-slate-700/50" : "text-slate-600 hover:text-sky-600 hover:bg-slate-200/50"}`}>{locale === "en" ? "RU" : "EN"}</Button>
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className={`rounded-full ${theme === "dark" ? "text-slate-300 hover:text-yellow-400 hover:bg-slate-700/50" : "text-slate-600 hover:text-yellow-600 hover:bg-slate-200/50"}`}>{theme === "light" ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}</Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className={`rounded-full ${theme === "dark" ? "text-slate-300 hover:text-green-400 hover:bg-slate-700/50" : "text-slate-600 hover:text-green-600 hover:bg-slate-200/50"}`}>{isMuted ? <SpeakerOffIcon className="w-5 h-5" /> : <SpeakerLoudIcon className="w-5 h-5" />}</Button>
+            <Button variant="ghost" size="icon" onClick={() => setCurrentMode(currentMode === "chat" ? "dialogue" : "chat")} className={`rounded-full ${theme === "dark" ? "text-slate-300 hover:text-purple-400 hover:bg-slate-700/50" : "text-slate-600 hover:text-purple-600 hover:bg-slate-200/50"}`}>{currentMode === "chat" ? <PersonIcon className="w-5 h-5" /> : <ChatBubbleIcon className="w-5 h-5" />}</Button>
+            {isAuthenticated && !isAnonymous && <Button variant="outline" onClick={async () => { await supabase.auth.signOut(); router.push("/");}} className={`rounded-lg ${theme === "dark" ? "border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500" : "border-slate-400 text-slate-700 hover:bg-slate-200 hover:border-slate-500"}`}>{t("auth.sign_out")}</Button>}
         </div>
       </div>
 
-      {/* Chat or Dialogue Mode */}
-      {currentMode === "chat" ? (
-        <>
-          <div className="w-full max-w-2xl flex-grow overflow-y-auto mb-4 px-2"><ChatWindow messages={messages} onOptionSelect={handleUserResponse} isLoading={isLoading} /></div>
-          {messages[messages.length -1]?.requiresInput && assessmentPhase !== "registration_prompt" && <div className="w-full max-w-2xl"><ChatInput onSendMessage={handleUserResponse} isLoading={isLoading} /></div>}
-        </>
-      ) : (
-        <div className="flex flex-col flex-grow items-center justify-center w-full max-w-2xl">
-          <OliviaSphere isSpeaking={isLoading || messages.some(m=>m.sender === "bot" && m.requiresInput !== false)} />
-          {messages.filter(m => m.sender ==="bot").slice(-1).map(msg => <p key={msg.id} className="mt-4 text-center text-lg px-4">{msg.text}</p>)}
-          {messages.filter(m => m.sender ==="bot" && m.options && m.requiresInput === false).slice(-1).map(msg => (
-            <div key={`${msg.id}-options`} className="mt-6 flex flex-wrap justify-center gap-3">
-                {msg.options?.map(opt => <Button key={opt.value} variant="outline" className="dialogue-option-button" onClick={() => handleUserResponse(opt.label, opt.value)}>{opt.label}</Button>)}
-            </div>
-          ))}
-          {messages[messages.length -1]?.requiresInput && assessmentPhase !== "registration_prompt" && <div className="mt-8"><Button variant="outline" size="lg" className="dialogue-action-button"><MicrophoneIcon className="mr-2" />{t("speak_now")}</Button></div>}
-        </div>
-      )}
+      {/* Main Content Area - Centered with OliviaSphere and Chat/Dialogue */}
+      <div className={`flex flex-col items-center justify-center flex-grow w-full max-w-4xl p-6 rounded-xl shadow-xl ${theme === "dark" ? "bg-slate-800/50 backdrop-blur-lg border border-slate-700/60" : "bg-white/50 backdrop-blur-lg border border-slate-300/60"}`}>
+        {currentMode === "dialogue" && (
+          <div className="mb-8">
+            <OliviaSphere isSpeaking={isLoading || messages.some(m=>m.sender === "bot" && m.requiresInput !== false)} />
+          </div>
+        )}
+
+        {currentMode === "chat" ? (
+          <>
+            <div className="w-full h-[calc(100%-80px)] flex-grow overflow-y-auto mb-4 px-2"><ChatWindow messages={messages} onOptionSelect={handleUserResponse} isLoading={isLoading} /></div>
+            {messages[messages.length -1]?.requiresInput && assessmentPhase !== "registration_prompt" && <div className="w-full"><ChatInput onSendMessage={handleUserResponse} isLoading={isLoading} /></div>}
+          </>
+        ) : (
+          <div className="flex flex-col flex-grow items-center justify-center w-full">
+            {messages.filter(m => m.sender ==="bot").slice(-1).map(msg => <p key={msg.id} className={`mt-4 text-center text-xl px-4 ${theme === "dark" ? "text-slate-200" : "text-slate-700"}`}>{msg.text}</p>)}
+            {messages.filter(m => m.sender ==="bot" && m.options && m.requiresInput === false).slice(-1).map(msg => (
+              <div key={`${msg.id}-options`} className="mt-6 flex flex-wrap justify-center gap-3">
+                  {msg.options?.map(opt => <Button key={opt.value} variant="outline" className={`dialogue-option-button rounded-lg px-6 py-3 text-lg ${theme === "dark" ? "border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-sky-500" : "border-slate-400 text-slate-700 hover:bg-slate-200 hover:border-sky-500"}`} onClick={() => handleUserResponse(opt.label, opt.value)}>{opt.label}</Button>)}
+              </div>
+            ))}
+            {messages[messages.length -1]?.requiresInput && assessmentPhase !== "registration_prompt" && <div className="mt-8"><Button variant="outline" size="lg" className={`dialogue-action-button rounded-full p-4 ${theme === "dark" ? "border-sky-500 text-sky-400 hover:bg-sky-700/30" : "border-sky-600 text-sky-600 hover:bg-sky-200/30"}`}><MicrophoneIcon className="w-8 h-8" /></Button></div>}
+          </div>
+        )}
+      </div>
 
       {/* Registration Modal */}
       <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
-        <DialogContent>
+        <DialogContent className={`rounded-lg shadow-2xl ${theme === "dark" ? "bg-slate-800 border-slate-700 text-slate-100" : "bg-white border-slate-300 text-slate-800"}`}>
           <DialogHeader>
-            <DialogTitle>{t("auth.registration_prompt.title")}</DialogTitle>
-            <DialogDescription>
-              {t("auth.registration_prompt.description")}
+            <DialogTitle className="text-2xl font-semibold">{t("auth.register_to_save")}</DialogTitle>
+            <DialogDescription className={`mt-2 ${theme === "dark" ? "text-slate-400" : "text-slate-600"}`}>
+              {t("auth.registration_prompt_benefits")}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-4">
-            <Button className="w-full" onClick={() => handleOAuthSignIn("google")}> {t("auth.sign_in_with_google")}</Button>
-            <Button className="w-full" onClick={() => handleOAuthSignIn("linkedin")}>{t("auth.sign_in_with_linkedin")}</Button>
-            {/* Add other providers as needed */}
+          <div className="grid gap-4 py-4">
+            <Button onClick={() => handleOAuthSignIn("google")} className={`w-full py-3 text-lg rounded-md ${theme === "dark" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-red-500 hover:bg-red-600 text-white"}`}>{t("auth.continue_with_google")}</Button>
+            <Button onClick={() => handleOAuthSignIn("linkedin")} className={`w-full py-3 text-lg rounded-md ${theme === "dark" ? "bg-sky-600 hover:bg-sky-700 text-white" : "bg-sky-500 hover:bg-sky-600 text-white"}`}>{t("auth.continue_with_linkedin")}</Button>
+            {/* Add more providers as needed */}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => {
-              setShowRegistrationModal(false);
-              fetchAndDisplayNextQuestion(); // Continue assessment as anonymous if modal is closed
-            }}>{t("auth.continue_as_guest")}</Button>
+            <Button variant="ghost" onClick={() => setShowRegistrationModal(false)} className={`rounded-md ${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"}`}>{t("common.later")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
