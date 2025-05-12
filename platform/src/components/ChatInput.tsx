@@ -4,7 +4,8 @@
 import React, { useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { PaperPlaneIcon, MicrophoneIcon } from "@radix-ui/react-icons"; // Using Radix icons as placeholders
+import { PaperPlaneIcon } from "@radix-ui/react-icons"; // Using Radix icons as placeholders
+import { Mic } from "lucide-react"; // Replaced MicrophoneIcon
 import { useI18n } from "./providers/I18nProvider";
 
 interface ChatInputProps {
@@ -32,7 +33,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
       <div className="flex items-center space-x-2">
         {/* Microphone Icon - Placeholder for voice input functionality */}
         <Button type="button" variant="ghost" size="icon" className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-300">
-          <MicrophoneIcon className="h-6 w-6" />
+          <Mic className="h-6 w-6" />
         </Button>
         
         <Input

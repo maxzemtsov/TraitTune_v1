@@ -49,7 +49,8 @@ import OliviaSphere from "@/components/OliviaSphere";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { SunIcon, MoonIcon, SpeakerLoudIcon, SpeakerOffIcon, ChatBubbleIcon, PersonIcon, MicrophoneIcon, CheckCircledIcon } from "@radix-ui/react-icons"; 
+import { SunIcon, MoonIcon, SpeakerLoudIcon, SpeakerOffIcon, ChatBubbleIcon, PersonIcon, CheckCircledIcon } from "@radix-ui/react-icons";
+import { Mic } from "lucide-react"; // Added Mic from lucide-react 
 import {
   Dialog,
   DialogContent,
