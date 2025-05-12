@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+
+/* Styles merged from /home/ubuntu/traittune/platform/src/styles/globals.css */
+/* Original path comment: /home/ubuntu/traittune_frontend/src/styles/globals.css */
+
+:root {
+  /* Core colors from Design System Specifications */
+  --primary-blue-hsl: 223 89% 60%;  /* #4361EE */
+  --primary-indigo-hsl: 256 94% 33%;  /* #3A0CA3 */
+  --secondary-purple-hsl: 283 85% 37%;  /* #7209B7 */
+  --secondary-violet-hsl: 264 86% 36%;  /* #560BAD */
+  --accent-teal-hsl: 190 89% 62%;  /* #4CC9F0 */
+
+  /* Light theme from Design System Specifications */
+  --background-light-hsl: 210 20% 98%;
+  --foreground-light-hsl: 224 71% 4%;
+  --card-light-hsl: 0 0% 100%;
+  --border-light-hsl: 220 13% 91%;
+
+  /* Dark theme from Design System Specifications */
+  --background-dark-hsl: 260 88% 7%; /* Deep indigo base */
+  --foreground-dark-hsl: 210 20% 98%;
+  --card-dark-hsl: 254 33% 10%;
+  --border-dark-hsl: 257 30% 15%;
+
+  /* Default to light theme variables from Design System */
+  /* Note: This will override --background, --foreground, --card, --border if previously defined in :root */
+  --background: var(--background-light-hsl);
+  --foreground: var(--foreground-light-hsl);
+  --card: var(--card-light-hsl);
+  --border: var(--border-light-hsl);
+}
+
+.dark {
+  /* Override with dark theme variables from Design System */
+  /* Note: This will override --background, --foreground, --card, --border if previously defined in .dark */
+  --background: var(--background-dark-hsl);
+  --foreground: var(--foreground-dark-hsl);
+  --card: var(--card-dark-hsl);
+  --border: var(--border-dark-hsl);
+}
+
+body {
+  /* This body style from src/styles/globals.css will likely take precedence over earlier body styles */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', sans-serif; /* Primary font from Design System */
+}
+
+/* Glassmorphism Card Style from Design System */
+.glass-card {
+  @apply bg-white/10 dark:bg-slate-900/15 backdrop-blur-xl border border-white/20 dark:border-indigo-300/10 shadow-lg rounded-xl overflow-hidden;
+  /* Adjusted opacity and blur based on Glassmorphism 2.0: reduced opacity, more blur, thinner borders */
+  /* Using backdrop-blur-xl (24px), border opacity 20% and 10% */
+}
+
+.glass-card-2 {
+  /* As specified in knowledge */
+  @apply bg-white/15 dark:bg-slate-900/15 backdrop-blur-2xl border border-white/10 dark:border-indigo-300/5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.16)] rounded-xl overflow-hidden;
+}
+
+/* Gradient text example (apply to specific elements as needed) */
+.text-gradient-primary {
+  @apply bg-gradient-to-r from-[hsl(var(--primary-blue-hsl))] to-[hsl(var(--primary-indigo-hsl))] text-transparent bg-clip-text;
+}
+
+.text-gradient-secondary {
+  @apply bg-gradient-to-r from-[hsl(var(--secondary-purple-hsl))] to-[hsl(var(--secondary-violet-hsl))] text-transparent bg-clip-text;
+}
+
+/* Button Styles (example, to be refined) */
+.btn-primary-gradient {
+  @apply bg-gradient-to-r from-[hsl(var(--primary-blue-hsl))] to-[hsl(var(--primary-indigo-hsl))] text-white;
+}
+
+.btn-secondary-gradient {
+  @apply bg-gradient-to-r from-[hsl(var(--secondary-purple-hsl))] to-[hsl(var(--secondary-violet-hsl))] text-white;
+}
+
+/* Ensure fonts are available, e.g., by importing them here or in layout */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Optimistic_Display:wght@700&display=swap'); */
+/* Note: Optimistic Display is a placeholder, actual font might need to be hosted or found */
+

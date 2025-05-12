@@ -1,0 +1,71 @@
+name: Deploy TraitTune Platform to Netlify
+
+on:
+  push:
+    branches:
+      - pilot
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy_platform:
+    name: Build and Deploy Platform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./platform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Install Platform dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Platform (Next.js application)
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: List files in platform directory after build (Troubleshooting)
+        run: ls -la
+
+      - name: List files in platform/out directory (Troubleshooting)
+        run: |
+          if [ -d "out" ]; then
+            echo "Contents of ./platform/out:"
+            ls -la out
+          else
+            echo "Directory ./platform/out does not exist"
+          fi
+
+      - name: List files in platform/.next directory (Troubleshooting)
+        run: |
+          if [ -d ".next" ]; then
+            echo "Contents of ./platform/.next:"
+            ls -la .next
+          else
+            echo "Directory ./platform/.next does not exist"
+          fi
+
+      - name: Deploy Platform to Netlify
+        uses: nwtgck/actions-netlify@v2.1.0
+        with:
+          publish-dir: './platform/out' # Changed to 'out' for static export
+          production-branch: pilot
+          deploy-message: "Deploy Platform to Netlify from commit ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5 # Added a timeout for safety, adjust as needed

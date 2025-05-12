@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - echo "Entered install phase for backend"
+      # Assuming npm is used for the backend. If different, adjust accordingly.
+      - npm install --omit=dev 
+  build:
+    commands:
+      - echo "Entered build phase for backend"
+      # Add any specific build commands if your backend requires them.
+      # If backend/package.json has a build script: npm run build-backend
+  post_build:
+    commands:
+      - echo "Creating backend deployment package..."
+      # This creates backend-deployment-package.zip in the backend directory.
+      # Ensure your CodePipeline's Build stage artifact definition points to 'backend/backend-deployment-package.zip'
+      # if CodeBuild's source is the root of the repository.
+      # If CodeBuild's source is set to the 'backend' directory, then the artifact path would be 'backend-deployment-package.zip'.
+      - zip -r backend-deployment-package.zip . -x "node_modules/*" ".git/*" "buildspec.yml" "tests/*" "*.log" "nohup.out" ".env*"
+
+artifacts:
+  files:
+    - backend-deployment-package.zip
+  # If CodeBuild's working directory is /home/ubuntu/traittune/backend, 
+  # this will place the artifact correctly for CodePipeline to find if it expects it at backend/backend-deployment-package.zip
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+
