@@ -138,8 +138,3 @@ dist
 # VSCode
 .vscode
 
-# Supabase
-.supabase/temp
-supabase/data/
-supabase/data_dump.sql
-supabase/*.csv
